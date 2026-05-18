@@ -1,0 +1,9 @@
+{
+  "plan": "free",
+  "status": "active",
+  "activated_at": null,
+  "expires_at": null,
+  "license_key": null,
+  "customer_email": null,
+  "stripe_session_id": null
+}
