@@ -63,10 +63,20 @@ def random_timezone() -> str:
 
 
 def get_proxy() -> dict | None:
-    proxy_url = os.getenv("PROXY_URL", "").strip()
-    if proxy_url:
-        return {"server": proxy_url}
-    return None
+    """
+    Returns a rotating proxy from the pool.
+    Falls back to direct connection if pool is empty.
+    All scrapers call this — zero config for users.
+    """
+    try:
+        from proxy_manager import get_rotating_proxy
+        return get_rotating_proxy()
+    except Exception:
+        # Fallback: single static proxy from env (old behaviour)
+        proxy_url = os.getenv("PROXY_URL", "").strip()
+        if proxy_url:
+            return {"server": proxy_url}
+        return None
 
 
 async def patch_page(page):

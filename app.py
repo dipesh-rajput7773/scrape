@@ -379,6 +379,9 @@ st.markdown(
 if "db" not in st.session_state:
     from leads_db import LeadsDB as _LDB
     st.session_state.db = _LDB()
+if "master_db" not in st.session_state:
+    from master_db import MasterDB as _MDB
+    st.session_state.master_db = _MDB()
 if "news_cache" not in st.session_state:
     st.session_state.news_cache = []
 if "news_fetched_at" not in st.session_state:
@@ -386,7 +389,8 @@ if "news_fetched_at" not in st.session_state:
 if "dark_mode" not in st.session_state:
     st.session_state.dark_mode = False
 
-DB = st.session_state.db
+DB     = st.session_state.db
+MDB    = st.session_state.master_db   # Master businesses flywheel
 
 # ── Constants ────────────────────────────────────────────────────────────
 NICHES = ["realestate", "dental", "gym", "salon", "it", "ecom"]
@@ -568,33 +572,43 @@ def show_dashboard():
     col1, col2, col3, col4, col5 = st.columns(5)
     with col1:
         st.markdown(
-            f'<div class="stat-card"><div class="stat-number">{s["total"]}</div>'
-            f'<div class="stat-label">Total Leads</div></div>',
+            f'<div class="stat-card">'
+            f'<div class="stat-label">Total Leads</div>'
+            f'<div class="stat-number">{s["total"]}</div>'
+            f'</div>',
             unsafe_allow_html=True,
         )
     with col2:
         hot_pct = round(s["hot"] / max(s["total"], 1) * 100)
         st.markdown(
-            f'<div class="stat-card"><div class="stat-number" style="color:#ef4444">{s["hot"]}</div>'
-            f'<div class="stat-label">Hot ({hot_pct}%)</div></div>',
+            f'<div class="stat-card">'
+            f'<div class="stat-label">Hot Leads</div>'
+            f'<div class="stat-number">{s["hot"]} <span class="stat-trend-up">↑ {hot_pct}%</span></div>'
+            f'</div>',
             unsafe_allow_html=True,
         )
     with col3:
         st.markdown(
-            f'<div class="stat-card"><div class="stat-number" style="color:#f59e0b">{s["warm"]}</div>'
-            f'<div class="stat-label">Warm</div></div>',
+            f'<div class="stat-card">'
+            f'<div class="stat-label">Warm Leads</div>'
+            f'<div class="stat-number" style="color:var(--amber)">{s["warm"]}</div>'
+            f'</div>',
             unsafe_allow_html=True,
         )
     with col4:
         st.markdown(
-            f'<div class="stat-card"><div class="stat-number" style="color:#10b981">{s["cold"]}</div>'
-            f'<div class="stat-label">Cold</div></div>',
+            f'<div class="stat-card">'
+            f'<div class="stat-label">Cold Leads</div>'
+            f'<div class="stat-number" style="color:var(--text-tertiary)">{s["cold"]}</div>'
+            f'</div>',
             unsafe_allow_html=True,
         )
     with col5:
         st.markdown(
-            f'<div class="stat-card"><div class="stat-number" style="color:#0066ff">{s["with_email"]}</div>'
-            f'<div class="stat-label">With Email</div></div>',
+            f'<div class="stat-card">'
+            f'<div class="stat-label">Verified Emails</div>'
+            f'<div class="stat-number" style="color:var(--secondary-accent)">{s["with_email"]}</div>'
+            f'</div>',
             unsafe_allow_html=True,
         )
 
@@ -760,6 +774,39 @@ def show_lead_finder():
             total_new = 0
             output_text = ""
 
+            # ── Master DB cache check ────────────────────────────────────
+            # If we already scraped this niche+city recently, serve from DB
+            city_key  = location.lower().strip()
+            niche_key = niche.lower().strip()
+            if source == "maps" and MDB.is_fresh(city_key, niche_key, min_count=15):
+                progress_bar.progress(30, text="Serving from Qorvai master database (instant)...")
+                cached = MDB.query(city_key, niche_key, limit=max_leads)
+                if cached:
+                    from leads_db import LeadsDB
+                    ldb = LeadsDB()
+                    added, skipped = 0, 0
+                    for biz in cached:
+                        rid = ldb.insert(biz, niche=niche, location=location, source="master_db")
+                        if rid:
+                            added += 1
+                        else:
+                            skipped += 1
+                    total_new = added
+                    progress_bar.progress(100, text="Done!")
+                    status_box.success(
+                        f"⚡ {added} leads from Qorvai database "
+                        f"({skipped} already in your leads) — no scraping needed"
+                    )
+                    st.success(f"Instant results! {total_new} new leads from master database.")
+                    if cached:
+                        df_cached = pd.DataFrame(cached[:20])
+                        cols = [c for c in ["business_name","phone","email","website",
+                                            "rating","address"] if c in df_cached.columns]
+                        st.subheader("📋 Results (from Master Database)")
+                        st.dataframe(df_cached[cols] if cols else df_cached, use_container_width=True)
+                    return
+            # ── End cache check — proceed with live scrape ───────────────
+
             progress_bar.progress(10, text=f"Running {source} scraper for {niche} in {location}...")
 
             if source == "maps":
@@ -832,6 +879,110 @@ def show_lead_finder():
                 )
                 output_text += r.stdout + "\n" + r.stderr
 
+            elif source == "clutch":
+                from niche_sources import get_clutch_category
+                clutch_cat = get_clutch_category(niche) or niche.lower().replace(" ", "-")
+                r = run_cmd(
+                    [sys.executable, os.path.join(PROJECT_DIR, "clutch_scraper.py"),
+                     clutch_cat, "--location", location,
+                     "--max", str(max_leads), "--out", output_csv]
+                )
+                output_text += r.stdout + "\n" + r.stderr
+
+            elif source == "healthgrades":
+                from niche_sources import get_healthgrades_specialty
+                specialty = get_healthgrades_specialty(niche) or niche.lower()
+                r = run_cmd(
+                    [sys.executable, os.path.join(PROJECT_DIR, "healthgrades_scraper.py"),
+                     specialty, location, "--max", str(max_leads), "--out", output_csv]
+                )
+                output_text += r.stdout + "\n" + r.stderr
+
+            elif source == "tripadvisor":
+                ta_cat = "restaurant" if "restaurant" in niche.lower() else "hotel"
+                r = run_cmd(
+                    [sys.executable, os.path.join(PROJECT_DIR, "tripadvisor_scraper.py"),
+                     ta_cat, location, "--max", str(max_leads), "--out", output_csv]
+                )
+                output_text += r.stdout + "\n" + r.stderr
+
+            elif source == "yelp":
+                r = run_cmd(
+                    [sys.executable, os.path.join(PROJECT_DIR, "yelp_scraper.py"),
+                     niche, location, "--max", str(max_leads), "--out", output_csv]
+                )
+                output_text += r.stdout + "\n" + r.stderr
+
+            elif source == "dork":
+                r = run_cmd(
+                    [sys.executable, os.path.join(PROJECT_DIR, "dork_email.py"),
+                     "--niche", niche, "--city", location,
+                     "--max", str(max_leads)]
+                )
+                output_text += r.stdout + "\n" + r.stderr
+
+            elif source == "all":
+                # Multi-source: run all best sources for this niche in sequence
+                from niche_sources import get_sources, get_keywords
+                sources_for_niche = get_sources(niche)
+                all_tmp_files = []
+                total_per_source = max(10, max_leads // len(sources_for_niche))
+
+                for src in sources_for_niche:
+                    if len(all_tmp_files) * total_per_source >= max_leads:
+                        break
+                    tmp_csv = f"tmp_{tag}_{src}.csv"
+                    progress_bar.progress(
+                        15 + (sources_for_niche.index(src) * 10),
+                        text=f"Scraping {src.upper()} for {niche} in {location}..."
+                    )
+                    try:
+                        if src == "maps":
+                            kws = get_keywords(niche, "maps")
+                            for kw in kws[:2]:
+                                kw_csv = f"tmp_{tag}_maps_{kw.replace(' ','_')}.csv"
+                                run_cmd([sys.executable, os.path.join(PROJECT_DIR,"maps_scraper.py"),
+                                         kw, location, "--max", str(total_per_source // len(kws[:2])),
+                                         "--out", kw_csv])
+                                if os.path.exists(kw_csv):
+                                    all_tmp_files.append(kw_csv)
+                        elif src == "yelp":
+                            run_cmd([sys.executable, os.path.join(PROJECT_DIR,"yelp_scraper.py"),
+                                     niche, location, "--max", str(total_per_source), "--out", tmp_csv])
+                            if os.path.exists(tmp_csv): all_tmp_files.append(tmp_csv)
+                        elif src == "clutch":
+                            from niche_sources import get_clutch_category
+                            cc = get_clutch_category(niche) or niche.lower().replace(" ","-")
+                            run_cmd([sys.executable, os.path.join(PROJECT_DIR,"clutch_scraper.py"),
+                                     cc, "--location", location, "--max", str(total_per_source), "--out", tmp_csv])
+                            if os.path.exists(tmp_csv): all_tmp_files.append(tmp_csv)
+                        elif src == "healthgrades":
+                            from niche_sources import get_healthgrades_specialty
+                            sp = get_healthgrades_specialty(niche) or niche.lower()
+                            run_cmd([sys.executable, os.path.join(PROJECT_DIR,"healthgrades_scraper.py"),
+                                     sp, location, "--max", str(total_per_source), "--out", tmp_csv])
+                            if os.path.exists(tmp_csv): all_tmp_files.append(tmp_csv)
+                        elif src == "tripadvisor":
+                            tc = "restaurant" if "restaurant" in niche.lower() else "hotel"
+                            run_cmd([sys.executable, os.path.join(PROJECT_DIR,"tripadvisor_scraper.py"),
+                                     tc, location, "--max", str(total_per_source), "--out", tmp_csv])
+                            if os.path.exists(tmp_csv): all_tmp_files.append(tmp_csv)
+                        elif src == "dork":
+                            run_cmd([sys.executable, os.path.join(PROJECT_DIR,"dork_email.py"),
+                                     "--niche", niche, "--city", location, "--max", str(total_per_source)])
+                        status_box.info(f"✅ {src.upper()} done")
+                    except Exception as se:
+                        output_text += f"\n[{src}] Error: {se}"
+
+                # Merge all temp files
+                if all_tmp_files:
+                    from run_pipeline import merge_csvs
+                    total = merge_csvs(all_tmp_files, output_csv)
+                    for tf in all_tmp_files:
+                        try: os.remove(tf)
+                        except Exception: pass
+                    status_box.info(f"🔀 Multi-source merge: {total} total leads")
+
             else:
                 show_f = ["--show"] if show_browser else []
                 r = run_cmd(
@@ -885,29 +1036,54 @@ def show_lead_finder():
                     )
                     total_new = added
                     status_box.success(f"✅ {added} NEW leads added ({skipped} duplicates skipped)")
+
+                    # ── Store into master businesses flywheel ────────────
+                    try:
+                        import csv as _csv
+                        with open(import_csv, newline="", encoding="utf-8") as _f:
+                            master_rows = list(_csv.DictReader(_f))
+                        m_new, m_upd = MDB.bulk_upsert(master_rows, niche=niche, city=location)
+                        st.caption(f"🗄️ Master DB: +{m_new} new businesses stored ({m_upd} updated)")
+                    except Exception:
+                        pass
+                    # ── End master DB store ──────────────────────────────
+
                 else:
                     status_box.warning("⚠️ No enriched data to import. Try --show to debug.")
 
             progress_bar.progress(100, text="Done!")
             st.success(f"Scraping complete! {total_new} new leads in database.")
 
-            # Show results
-            for candidate in [scored_csv, enriched_csv, output_csv]:
-                if os.path.exists(candidate):
-                    df = read_csv_to_df(candidate)
-                    if df is not None and not df.empty:
-                        st.subheader(f"📋 Results: {candidate}")
-                        cols = [c for c in ["business_name", "phone", "email", "website",
-                                             "pain_point", "score", "temperature", "source"]
-                                if c in df.columns]
-                        display = df[cols].head(20) if cols else df.head(20)
-                        st.dataframe(display, use_container_width=True)
-                        csv_dl = df.to_csv(index=False).encode("utf-8")
+            # Show results from DB (not from temp CSV files)
+            if total_new > 0:
+                try:
+                    with DB._conn() as conn:
+                        conn.row_factory = __import__("sqlite3").Row
+                        rows = conn.execute(
+                            "SELECT business_name, phone, email, website, "
+                            "pain_point, score, temperature, source "
+                            "FROM leads ORDER BY created_at DESC LIMIT 20"
+                        ).fetchall()
+                    if rows:
+                        df_result = pd.DataFrame([dict(r) for r in rows])
+                        st.subheader("📋 Latest Results (from Database)")
+                        st.dataframe(df_result, use_container_width=True)
+                        csv_dl = df_result.to_csv(index=False).encode("utf-8")
                         st.download_button(
-                            "📥 Download CSV", csv_dl, candidate,
+                            "📥 Download CSV", csv_dl,
+                            f"leads_export_{datetime.now().strftime('%Y%m%d_%H%M')}.csv",
                             "text/csv", use_container_width=True,
                         )
-                    break
+                except Exception:
+                    pass
+
+            # Clean up intermediate CSV files — DB is the source of truth
+            for tmp in [output_csv, enriched_csv, scored_csv]:
+                try:
+                    if os.path.exists(tmp):
+                        os.remove(tmp)
+                except Exception:
+                    pass
 
             with st.expander("📜 Scraper Log"):
                 st.text(output_text[:5000])
@@ -1528,20 +1704,92 @@ def show_settings():
         if hubspot_key:
             os.environ["HUBSPOT_TOKEN"] = hubspot_key
 
-    with st.expander("🌐 Proxy Settings (Anti-Block)"):
-        if not is_pro():
-            st.warning("🔒 Proxy support is a **Pro** feature. Upgrade to enable.")
-        else:
-            st.info("Proxies help avoid CAPTCHAs and IP bans during scraping.")
+    with st.expander("🌐 Anti-Ban Proxy Pool", expanded=True):
+        st.markdown(
+            "**Built-in rotating proxy system** — auto-fetches free proxies, "
+            "tests them, and rotates IPs per session. Zero config needed."
+        )
+
+        # ── Live pool status ─────────────────────────────────────────────
+        try:
+            from proxy_manager import POOL
+            s = POOL.status()
+
+            tier_color = {"webshare": "🟢", "custom": "🟢", "free": "🟡", "none": "🔴"}
+            tier_label = {"webshare": "Webshare (best)", "custom": "Custom", "free": "Free pool", "none": "Not started"}
+            tier_icon  = tier_color.get(s["tier"], "⚪")
+            tier_name  = tier_label.get(s["tier"], s["tier"])
+
+            col1, col2, col3, col4 = st.columns(4)
+            with col1:
+                st.metric("Working Proxies", s["pool_size"], help="IPs currently in rotation")
+            with col2:
+                st.metric("Tier", f"{tier_icon} {tier_name}")
+            with col3:
+                st.metric("Requests Proxied", s["requests_proxied"])
+            with col4:
+                age = s["last_refresh_min"]
+                st.metric("Pool Age", f"{age}m" if age >= 0 else "Pending")
+
+            if s["sample_proxies"]:
+                masked = [p.split("@")[-1] if "@" in p else p[:25] + "..." for p in s["sample_proxies"]]
+                st.caption(f"Sample active IPs: {' · '.join(masked)}")
+
+            col_btn1, col_btn2 = st.columns(2)
+            with col_btn1:
+                if st.button("🔄 Refresh Proxy Pool", use_container_width=True):
+                    with st.spinner("Fetching and testing proxies..."):
+                        POOL.force_refresh()
+                    st.success(f"✅ Pool refreshed — {POOL.status()['pool_size']} proxies ready")
+                    st.rerun()
+            with col_btn2:
+                st.caption(
+                    "Auto-refreshes every 30 min. "
+                    "Free proxies work for most sites. "
+                    "Add Webshare key below for Google-grade proxies."
+                )
+
+        except Exception as ex:
+            st.warning(f"Proxy pool not loaded yet: {ex}")
+
+        st.divider()
+
+        # ── Webshare free tier (best quality, 1-time signup) ─────────────
+        st.markdown("##### Webshare Free Tier (Recommended)")
+        st.caption(
+            "Sign up free at webshare.io → API Keys → copy key here. "
+            "Gives 10 rotating residential-quality proxies. Far better than raw free lists."
+        )
+        webshare_key = st.text_input(
+            "Webshare API Key",
+            value=os.getenv("WEBSHARE_API_KEY", ""),
+            type="password",
+            placeholder="Paste Webshare API key here",
+        )
+        if webshare_key:
+            os.environ["WEBSHARE_API_KEY"] = webshare_key
+
+        # ── Custom proxy override ─────────────────────────────────────────
+        st.markdown("##### Custom Proxy (Optional Override)")
+        st.caption("If you have a paid proxy (Smartproxy, Oxylabs, etc.), paste it here. Overrides all other sources.")
         proxy_url = st.text_input(
             "Proxy URL",
             value=os.getenv("PROXY_URL", ""),
-            placeholder="http://user:pass@proxy.com:8080",
-            help="Supported: http, https, socks5",
-            disabled=not is_pro(),
+            placeholder="http://user:pass@proxy.example.com:8080",
+            help="Formats: http://, https://, socks5://",
         )
         if proxy_url:
             os.environ["PROXY_URL"] = proxy_url
+
+        # ── Proxy tier guide ─────────────────────────────────────────────
+        st.markdown("""
+| Tier | Cost | Works on | Setup |
+|------|------|----------|-------|
+| 🟢 Custom paid proxy | $5-20/mo | Google Maps, everything | Paste URL above |
+| 🟢 Webshare free | $0 | Yelp, most sites, partial Maps | 1-time signup |
+| 🟡 Auto free pool | $0 | Yelp, local sites | None — auto |
+| ⚪ No proxy (direct) | $0 | Light Maps scraping only | None |
+        """)
 
     with st.expander("💎 Subscription & Billing", expanded=True):
         sub = get_subscription()
@@ -1650,7 +1898,7 @@ def show_settings():
             st.markdown("- Workflow automation (n8n)")
 
     st.divider()
-    st.subheader("📊 Database Stats")
+    st.subheader("📊 Leads Database Stats")
     try:
         s = DB.stats()
         col1, col2, col3 = st.columns(3)
@@ -1663,10 +1911,35 @@ def show_settings():
         with col3:
             st.metric("Hot", s["hot"])
             st.metric("Warm", s["warm"])
-
-        st.caption(f"Database path: {os.path.join(PROJECT_DIR, 'leads.db')}")
+        st.caption(f"Leads DB: {os.path.join(PROJECT_DIR, 'leads.db')}")
     except Exception as e:
         st.error(f"DB error: {e}")
+
+    st.divider()
+    st.subheader("🗄️ Master Businesses Database (Data Flywheel)")
+    try:
+        ms = MDB.stats()
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            st.metric("Total Businesses", ms["total"])
+        with col2:
+            st.metric("With Email", ms["with_email"])
+        with col3:
+            st.metric("Cities Covered", ms["cities"])
+        with col4:
+            st.metric("Niches Covered", ms["niches"])
+
+        coverage = MDB.coverage()
+        if coverage:
+            st.markdown("**Coverage by City + Niche:**")
+            df_cov = pd.DataFrame(coverage)
+            st.dataframe(df_cov, use_container_width=True, hide_index=True)
+        st.caption(
+            f"Master DB: {os.path.join(PROJECT_DIR, 'master_businesses.db')} — "
+            "Every scrape feeds this database. Searches here first = instant results."
+        )
+    except Exception as e:
+        st.error(f"Master DB error: {e}")
 
     st.divider()
     if st.button("🗑️ Clear Session Cache", use_container_width=True):

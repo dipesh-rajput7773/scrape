@@ -74,6 +74,14 @@ async def scrape_about_text(page, base_url: str) -> str:
 
 
 async def enrich(rows):
+    # Use email_finder's batch processor for email extraction
+    # It runs the full 5-step pipeline: website scan → dork → pattern → hunter
+    try:
+        from email_finder import find_emails_batch
+        rows = await find_emails_batch(rows, concurrency=3)
+    except Exception as e:
+        print(f"[enrich] email_finder batch failed, falling back: {e}")
+
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
         ctx = await browser.new_context(
