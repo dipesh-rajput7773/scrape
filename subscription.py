@@ -166,10 +166,24 @@ def get_leads_limit() -> int:
 
 
 def get_stripe_checkout_url(plan: str) -> str:
-    price_id = PLANS.get(plan, {}).get("price_id")
-    if not price_id:
-        return ""
-    return f"https://buy.stripe.com/test_8wE4jA3qX9vK3C4aEE?prefilled_promo_code=&client_reference_id={uuid.uuid4().hex[:8]}"
+    """
+    Returns the Stripe Checkout URL for the given plan.
+
+    SETUP (one-time, after switching Stripe to Live Mode):
+      1. Go to Stripe Dashboard → Products → create Starter / Pro / Agency
+      2. Copy the Payment Link URL for each plan
+      3. Set these env vars in Railway dashboard:
+           STRIPE_LINK_STARTER  = https://buy.stripe.com/live_xxxxx
+           STRIPE_LINK_PRO      = https://buy.stripe.com/live_yyyyy
+           STRIPE_LINK_AGENCY   = https://buy.stripe.com/live_zzzzz
+    """
+    import os as _os
+    env_key = f"STRIPE_LINK_{plan.upper()}"
+    live_url = _os.getenv(env_key, "").strip()
+    if live_url:
+        return live_url
+    # Fallback: test mode link (remove once live keys are set)
+    return f"https://buy.stripe.com/test_8wE4jA3qX9vK3C4aEE?client_reference_id={uuid.uuid4().hex[:8]}"
 
 
 def activate_license(license_key: str, plan: str = "pro") -> bool:

@@ -1030,9 +1030,15 @@ def show_lead_finder():
             scored_csv = f"scored_{tag}.csv"
 
             if not os.path.exists(output_csv):
-                status_box.error(f"Scraper produced no output. Check logs below. "
-                                f"(Possible: no businesses found, blocked by captcha, "
-                                f"or --show needed for manual solve.)")
+                status_box.error("No results found.")
+                st.warning(
+                    "**No leads found — here's what to try:**\n\n"
+                    "1. 🔄 Try a **different niche or city** (e.g. 'dentist' → 'dental clinic')\n"
+                    "2. 🌐 Enable **Proxy Rotation** in the Settings tab to bypass rate limits\n"
+                    "3. 👁️ Enable **Show Browser** mode to check if a CAPTCHA is blocking the scraper\n"
+                    "4. 📡 Try a different **source** (e.g. switch Maps → Yelp or Clutch)\n"
+                    "5. ⏳ Wait 60 seconds and try again — Google Maps may have rate-limited you"
+                )
             else:
                 # Enrich
                 r2 = run_cmd(
@@ -1045,14 +1051,23 @@ def show_lead_finder():
                 # Score + extract pain points
                 has_scored = False
                 if extract_pain:
-                    progress_bar.progress(85, text="Extracting pain points with GPT...")
-                    if os.path.exists(enriched_csv):
-                        r3 = run_cmd(
-                            [sys.executable, os.path.join(PROJECT_DIR, "lead_scorer.py"),
-                             enriched_csv, "--out", scored_csv]
+                    _openai_key = os.getenv("OPENAI_API_KEY", "").strip()
+                    if not _openai_key:
+                        st.warning(
+                            "⚠️ **OpenAI API key not set** — AI scoring skipped.\n\n"
+                            "Go to **Settings → API Keys** to add your key, then re-run. "
+                            "Get a free key at [platform.openai.com](https://platform.openai.com)."
                         )
-                        output_text += r3.stdout + "\n" + r3.stderr
-                        has_scored = os.path.exists(scored_csv)
+                        extract_pain = False
+                    else:
+                        progress_bar.progress(85, text="Extracting pain points with GPT...")
+                        if os.path.exists(enriched_csv):
+                            r3 = run_cmd(
+                                [sys.executable, os.path.join(PROJECT_DIR, "lead_scorer.py"),
+                                 enriched_csv, "--out", scored_csv]
+                            )
+                            output_text += r3.stdout + "\n" + r3.stderr
+                            has_scored = os.path.exists(scored_csv)
 
                 # Import to DB
                 progress_bar.progress(95, text="Importing to database...")
@@ -1120,9 +1135,33 @@ def show_lead_finder():
                 st.text(output_text[:5000])
 
         except Exception as e:
-            st.error(f"Error: {e}")
-            import traceback
-            st.text(traceback.format_exc())
+            err_str = str(e).lower()
+            if "playwright" in err_str or "chromium" in err_str or "browser" in err_str:
+                st.error(
+                    "🌐 **Browser/Playwright Error** — Chromium is not installed or crashed.\n\n"
+                    "Fix: Run `playwright install chromium` in your terminal, then try again."
+                )
+            elif "timeout" in err_str or "timed out" in err_str:
+                st.error(
+                    "⏱️ **Scraper Timed Out** — The target website is responding too slowly.\n\n"
+                    "Try: Enable **Proxy Rotation** in Settings, or switch to a different source."
+                )
+            elif "openai" in err_str or "api key" in err_str or "authentication" in err_str:
+                st.error(
+                    "🔑 **OpenAI API Key Error** — Your key is missing or invalid.\n\n"
+                    "Go to **Settings → API Keys** and add a valid key from "
+                    "[platform.openai.com](https://platform.openai.com)."
+                )
+            elif "connection" in err_str or "network" in err_str or "ssl" in err_str:
+                st.error(
+                    "📡 **Network Error** — Could not connect to the target website.\n\n"
+                    "Check your internet connection or try enabling a proxy in Settings."
+                )
+            else:
+                st.error(f"❌ **Unexpected Error:** {e}")
+            with st.expander("🔍 Technical Details (for debugging)"):
+                import traceback
+                st.code(traceback.format_exc(), language="python")
 
     # Recent scrapes
     st.divider()
