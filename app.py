@@ -35,6 +35,37 @@ PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
 if PROJECT_DIR not in sys.path:
     sys.path.insert(0, PROJECT_DIR)
 
+# ── Load .env file (persisted API keys) ──────────────────────────────────
+_ENV_FILE = os.path.join(PROJECT_DIR, ".env")
+try:
+    from dotenv import load_dotenv
+    load_dotenv(_ENV_FILE, override=False)
+except Exception:
+    pass
+
+
+def _save_env(updates: dict):
+    """Save key=value pairs to .env file so they persist across restarts."""
+    # Read existing lines
+    existing: dict[str, str] = {}
+    if os.path.exists(_ENV_FILE):
+        with open(_ENV_FILE, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if line and "=" in line and not line.startswith("#"):
+                    k, _, v = line.partition("=")
+                    existing[k.strip()] = v.strip()
+    # Merge updates (only non-empty values)
+    for k, v in updates.items():
+        if v:
+            existing[k] = v
+            os.environ[k] = v
+    # Write back
+    with open(_ENV_FILE, "w", encoding="utf-8") as f:
+        for k, v in existing.items():
+            f.write(f"{k}={v}\n")
+
+
 # ── Page config ──────────────────────────────────────────────────────────
 st.set_page_config(page_title="Qorvai AI — Intelligent Lead Engine", layout="wide", page_icon="⚡")
 
@@ -1699,10 +1730,16 @@ def show_settings():
                         st.error(f"❌ Connection error: {e}")
         with col_hs2:
             st.caption("Test your HubSpot token before syncing leads.")
+        if st.button("💾 Save API Keys", type="primary", use_container_width=True, key="save_keys"):
+            _save_env({
+                "OPENAI_API_KEY": openai_key,
+                "HUBSPOT_TOKEN":  hubspot_key,
+            })
+            st.success("✅ Keys saved — will persist after restart")
         if openai_key:
             os.environ["OPENAI_API_KEY"] = openai_key
         if hubspot_key:
-            os.environ["HUBSPOT_TOKEN"] = hubspot_key
+            os.environ["HUBSPOT_TOKEN"]  = hubspot_key
 
     with st.expander("🌐 Anti-Ban Proxy Pool", expanded=True):
         st.markdown(
@@ -1780,6 +1817,10 @@ def show_settings():
         )
         if proxy_url:
             os.environ["PROXY_URL"] = proxy_url
+
+        if st.button("💾 Save Proxy Settings", key="save_proxy"):
+            _save_env({"WEBSHARE_API_KEY": webshare_key, "PROXY_URL": proxy_url})
+            st.success("✅ Proxy settings saved")
 
         # ── Proxy tier guide ─────────────────────────────────────────────
         st.markdown("""
@@ -1861,6 +1902,9 @@ def show_settings():
             os.environ["EMAIL_FROM"] = email_from
         if email_pass:
             os.environ["EMAIL_PASS"] = email_pass
+        if st.button("💾 Save Email Settings", key="save_email"):
+            _save_env({"EMAIL_FROM": email_from, "EMAIL_PASS": email_pass})
+            st.success("✅ Email settings saved")
 
     with st.expander("📷 Instagram Login (optional)"):
         st.info("Instagram login is needed for hashtag scraping.")
@@ -1878,6 +1922,9 @@ def show_settings():
             os.environ["IG_USER"] = ig_user
         if ig_pass:
             os.environ["IG_PASS"] = ig_pass
+        if st.button("💾 Save Instagram Settings", key="save_ig"):
+            _save_env({"IG_USER": ig_user, "IG_PASS": ig_pass})
+            st.success("✅ Instagram settings saved")
 
     with st.expander("📊 Lead Scoring Config"):
         st.info(
