@@ -1,3 +1,4 @@
+from __future__ import annotations
 """
 SQLite lead database — global deduplication across ALL runs.
 Every lead ever found is stored here. No duplicate is ever processed twice.

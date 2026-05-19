@@ -1,3 +1,4 @@
+from __future__ import annotations
 """
 AI News Aggregator — pulls latest AI updates from 15+ sources worldwide.
 Sources: Anthropic, OpenAI, NVIDIA, Product Hunt, Product Sumo, TechCrunch,

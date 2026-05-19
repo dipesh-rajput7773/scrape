@@ -1,3 +1,4 @@
+from __future__ import annotations
 """
 Generate niche-specific cold emails for enriched leads.
 Works with both Meta Ads leads (enriched.csv) and Maps leads (maps_leads.csv).

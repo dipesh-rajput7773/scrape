@@ -1,3 +1,4 @@
+from __future__ import annotations
 """
 Yelp Business Scraper — Anti-ban, stealth Playwright.
 Backup source when Google Maps blocks or returns thin results.

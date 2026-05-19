@@ -1,3 +1,4 @@
+from __future__ import annotations
 ﻿"""
 Meta Ads Library Scraper
 Usage: python scraper.py "ai automation" --country IN --max 100

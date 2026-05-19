@@ -21,143 +21,169 @@ from stealth import (
 async def scrape_maps(query: str, location: str, max_results: int, headless: bool):
     search = f"{query} in {location}"
     url = "https://www.google.com/maps/search/" + search.replace(" ", "+")
-    results = []
-    seen = set()
 
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=headless, proxy=get_proxy())
-        ctx = await create_stealth_context(browser, viewport=random_viewport(), ua=random_ua())
-        page = await ctx.new_page()
-        await patch_page(page)
+    # Stealth Chromium args — defeats headless bot detection on Google
+    STEALTH_ARGS = [
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-blink-features=AutomationControlled",
+        "--disable-features=IsolateOrigins,site-per-process",
+        "--disable-dev-shm-usage",
+        "--disable-accelerated-2d-canvas",
+        "--no-first-run",
+        "--no-zygote",
+        "--disable-gpu",
+        "--disable-infobars",
+        "--window-size=1920,1080",
+        "--ignore-certificate-errors",
+    ]
 
-        print(f"[*] Searching: {search}")
-        await page.goto(url, wait_until="domcontentloaded", timeout=60000)
-        await random_delay(2, 4)
-
-        # Accept cookies if prompted
+    for attempt in range(3):
+        results = []
+        seen = set()
         try:
-            await page.locator("text=Accept all").first.click(timeout=3000)
-            await random_delay(0.5, 1.5)
-        except Exception:
-            pass
+            async with async_playwright() as p:
+                browser = await p.chromium.launch(
+                    headless=headless,
+                    proxy=get_proxy(),
+                    args=STEALTH_ARGS,
+                )
+                ctx = await create_stealth_context(browser, viewport=random_viewport(), ua=random_ua())
+                page = await ctx.new_page()
+                await patch_page(page)
 
-        stagnant = 0
-        last_count = 0
+                print(f"[*] Searching: {search} (attempt {attempt + 1})")
+                await page.goto(url, wait_until="domcontentloaded", timeout=60000)
+                await random_delay(2, 4)
 
-        while len(results) < max_results and stagnant < 6:
-            # Grab all listing links from the feed
-            links = await page.locator('a[href*="/maps/place/"]').all()
-
-            for link in links:
-                if len(results) >= max_results:
-                    break
+                # Accept cookies if prompted
                 try:
-                    name = await link.get_attribute("aria-label")
-                    href = await link.get_attribute("href")
-                    if not name or not href:
-                        continue
-                    key = name.strip().lower()
-                    if key in seen:
-                        continue
-                    seen.add(key)
+                    await page.locator("text=Accept all").first.click(timeout=3000)
+                    await random_delay(0.5, 1.5)
+                except Exception:
+                    pass
 
-                    # Click listing to load detail panel
-                    await link.click()
+                stagnant = 0
+                last_count = 0
+
+                while len(results) < max_results and stagnant < 6:
+                    links = await page.locator('a[href*="/maps/place/"]').all()
+
+                    for link in links:
+                        if len(results) >= max_results:
+                            break
+                        try:
+                            name = await link.get_attribute("aria-label")
+                            href = await link.get_attribute("href")
+                            if not name or not href:
+                                continue
+                            key = name.strip().lower()
+                            if key in seen:
+                                continue
+                            seen.add(key)
+
+                            await link.click()
+                            await random_delay(1.5, 3.0)
+
+                            info = await page.evaluate("""
+                                () => {
+                                    const q = (sel) => {
+                                        const el = document.querySelector(sel);
+                                        return el ? el.innerText.trim() : '';
+                                    };
+                                    const attr = (sel, a) => {
+                                        const el = document.querySelector(sel);
+                                        return el ? (el.getAttribute(a) || '').trim() : '';
+                                    };
+
+                                    let phone = '';
+                                    document.querySelectorAll('button[data-tooltip]').forEach(btn => {
+                                        const tip = btn.getAttribute('data-tooltip') || '';
+                                        if (tip.toLowerCase().includes('phone') || tip.toLowerCase().includes('copy phone')) {
+                                            phone = btn.innerText.trim();
+                                        }
+                                    });
+                                    if (!phone) {
+                                        document.querySelectorAll('button[aria-label]').forEach(btn => {
+                                            const lbl = btn.getAttribute('aria-label') || '';
+                                            if (lbl.match(/^[+\\d][\\d\\s\\-().]{6,}/)) {
+                                                phone = lbl.trim();
+                                            }
+                                        });
+                                    }
+
+                                    let website = '';
+                                    document.querySelectorAll('a[data-tooltip], a[aria-label]').forEach(a => {
+                                        const tip = (a.getAttribute('data-tooltip') || a.getAttribute('aria-label') || '').toLowerCase();
+                                        if (tip.includes('website') || tip.includes('open website')) {
+                                            website = a.href || '';
+                                        }
+                                    });
+
+                                    let address = '';
+                                    document.querySelectorAll('button[data-tooltip]').forEach(btn => {
+                                        const tip = btn.getAttribute('data-tooltip') || '';
+                                        if (tip.toLowerCase().includes('address') || tip.toLowerCase().includes('copy address')) {
+                                            address = btn.innerText.trim();
+                                        }
+                                    });
+
+                                    const ratingEl = document.querySelector('span.MW4etd') ||
+                                                     document.querySelector('[aria-label*="stars"]');
+                                    const rating = ratingEl ? ratingEl.innerText.trim() : '';
+
+                                    const reviewEl = document.querySelector('span.UY7F9') ||
+                                                     document.querySelector('span[aria-label*="reviews"]');
+                                    const reviews = reviewEl ? reviewEl.innerText.replace(/[()]/g,'').trim() : '';
+
+                                    return { phone, website, address, rating, reviews };
+                                }
+                            """)
+
+                            website = info.get("website", "")
+                            row = {
+                                "business_name": name.strip(),
+                                "phone":    info.get("phone", ""),
+                                "website":  website,
+                                "cta_url":  website,
+                                "address":  info.get("address", ""),
+                                "rating":   info.get("rating", ""),
+                                "reviews":  info.get("reviews", ""),
+                                "has_website": "yes" if website else "no",
+                                "maps_url": href,
+                            }
+                            results.append(row)
+                            print(
+                                f"[{len(results)}] {name[:45]:<45} "
+                                f"phone={'[OK]' if row['phone'] else '[X]'}  "
+                                f"web={'[OK]' if website else '[X]'}"
+                            )
+                        except Exception:
+                            continue
+
+                    await human_scroll(page, distance=random.randint(800, 1800), steps=random.randint(3, 6))
                     await random_delay(1.5, 3.0)
 
-                    info = await page.evaluate("""
-                        () => {
-                            const q = (sel) => {
-                                const el = document.querySelector(sel);
-                                return el ? el.innerText.trim() : '';
-                            };
-                            const attr = (sel, a) => {
-                                const el = document.querySelector(sel);
-                                return el ? (el.getAttribute(a) || '').trim() : '';
-                            };
+                    if len(results) == last_count:
+                        stagnant += 1
+                    else:
+                        stagnant = 0
+                    last_count = len(results)
 
-                            // Phone: button with tooltip containing 'phone'
-                            let phone = '';
-                            document.querySelectorAll('button[data-tooltip]').forEach(btn => {
-                                const tip = btn.getAttribute('data-tooltip') || '';
-                                if (tip.toLowerCase().includes('phone') || tip.toLowerCase().includes('copy phone')) {
-                                    phone = btn.innerText.trim();
-                                }
-                            });
-                            // Fallback: aria-label containing phone
-                            if (!phone) {
-                                document.querySelectorAll('button[aria-label]').forEach(btn => {
-                                    const lbl = btn.getAttribute('aria-label') || '';
-                                    if (lbl.match(/^[+\\d][\\d\\s\\-().]{6,}/)) {
-                                        phone = lbl.trim();
-                                    }
-                                });
-                            }
+                await browser.close()
 
-                            // Website link
-                            let website = '';
-                            document.querySelectorAll('a[data-tooltip], a[aria-label]').forEach(a => {
-                                const tip = (a.getAttribute('data-tooltip') || a.getAttribute('aria-label') || '').toLowerCase();
-                                if (tip.includes('website') || tip.includes('open website')) {
-                                    website = a.href || '';
-                                }
-                            });
+            # If we got results, return them
+            if results:
+                return results
+            # No results but no error — retry
+            if attempt < 2:
+                print(f"[!] 0 results on attempt {attempt + 1}, retrying in 15s...")
+                await asyncio.sleep(15)
 
-                            // Address
-                            let address = '';
-                            document.querySelectorAll('button[data-tooltip]').forEach(btn => {
-                                const tip = btn.getAttribute('data-tooltip') || '';
-                                if (tip.toLowerCase().includes('address') || tip.toLowerCase().includes('copy address')) {
-                                    address = btn.innerText.trim();
-                                }
-                            });
-
-                            // Rating
-                            const ratingEl = document.querySelector('span.MW4etd') ||
-                                             document.querySelector('[aria-label*="stars"]');
-                            const rating = ratingEl ? ratingEl.innerText.trim() : '';
-
-                            // Review count
-                            const reviewEl = document.querySelector('span.UY7F9') ||
-                                             document.querySelector('span[aria-label*="reviews"]');
-                            const reviews = reviewEl ? reviewEl.innerText.replace(/[()]/g,'').trim() : '';
-
-                            return { phone, website, address, rating, reviews };
-                        }
-                    """)
-
-                    website = info.get("website", "")
-                    row = {
-                        "business_name": name.strip(),
-                        "phone":   info.get("phone", ""),
-                        "website": website,
-                        "cta_url": website,   # enrich.py uses cta_url
-                        "address": info.get("address", ""),
-                        "rating":  info.get("rating", ""),
-                        "reviews": info.get("reviews", ""),
-                        "has_website": "yes" if website else "no",
-                        "maps_url": href,
-                    }
-                    results.append(row)
-                    print(
-                        f"[{len(results)}] {name[:45]:<45} "
-                        f"phone={'[OK]' if row['phone'] else '[X]'}  "
-                        f"web={'[OK]' if website else '[X]'}"
-                    )
-                except Exception:
-                    continue
-
-            # Human-like scroll
-            await human_scroll(page, distance=random.randint(800, 1800), steps=random.randint(3, 6))
-            await random_delay(1.5, 3.0)
-
-            if len(results) == last_count:
-                stagnant += 1
-            else:
-                stagnant = 0
-            last_count = len(results)
-
-        await browser.close()
+        except Exception as e:
+            print(f"[!] Attempt {attempt + 1} failed: {e}")
+            if attempt < 2:
+                await asyncio.sleep(10 + attempt * 15)
 
     return results
 

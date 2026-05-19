@@ -1,3 +1,4 @@
+from __future__ import annotations
 ﻿"""
 Reddit Lead Scraper — finds business owners actively looking for automation/chatbots.
 Uses Reddit public JSON API (no API key needed, free, unlimited).

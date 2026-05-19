@@ -1,3 +1,4 @@
+from __future__ import annotations
 """
 TripAdvisor Scraper — Restaurants, Hotels, Tourism businesses.
 

@@ -1,3 +1,4 @@
+from __future__ import annotations
 """
 Qorvai AI — Lead Gen & AI News Dashboard
 Run: streamlit run app.py

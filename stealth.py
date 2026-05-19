@@ -1,3 +1,4 @@
+from __future__ import annotations
 """
 Anti-detection & stealth utilities for all Qorvai scrapers.
 Provides human-like browser fingerprints, stealth patches, and proxy rotation.

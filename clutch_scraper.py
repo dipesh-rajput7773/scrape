@@ -1,3 +1,4 @@
+from __future__ import annotations
 """
 Clutch.co Scraper — IT agencies, marketing firms, design studios.
 
