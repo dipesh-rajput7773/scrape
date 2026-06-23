@@ -1,9 +1,10 @@
 {
-  "plan": "free",
+  "plan": "agency",
   "status": "active",
-  "activated_at": null,
-  "expires_at": null,
-  "license_key": null,
-  "customer_email": null,
+  "license_key": "QRV-4EAC0272-B74",
+  "customer_email": "business@qorvai.com",
+  "activated_at": 1779298452.978208,
+  "expires_at": 2094658452.978208,
+  "last_remote_check": 1782235934.693345,
   "stripe_session_id": null
 }

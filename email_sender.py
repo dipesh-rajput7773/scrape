@@ -1,4 +1,4 @@
-﻿"""
+"""
 Auto cold email sender via Gmail SMTP.
 Usage: python email_sender.py outreach.csv --from you@gmail.com --pass "app_password"
        OR set EMAIL_FROM and EMAIL_PASS env vars.
@@ -27,6 +27,28 @@ def build_message(from_email: str, from_name: str, to_email: str,
     msg["To"]      = to_email
     msg.attach(MIMEText(body, "plain", "utf-8"))
     return msg
+
+
+def send_email(to_email: str, subject: str, body: str,
+               from_email: str = None, password: str = None,
+               from_name: str = "Qorvai AI") -> bool:
+    """Send a single email via Gmail SMTP. Resolves credentials from environment."""
+    import os
+    import smtplib
+    if not from_email:
+        from_email = os.getenv("EMAIL_FROM", "")
+    if not password:
+        password = os.getenv("EMAIL_PASS", "")
+
+    if not from_email or not password:
+        raise ValueError("Missing EMAIL_FROM or EMAIL_PASS environment variables.")
+
+    msg = build_message(from_email, from_name, to_email, subject, body)
+    
+    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
+        smtp.login(from_email, password)
+        smtp.send_message(msg)
+    return True
 
 
 def send_batch(rows: list, from_email: str, password: str, from_name: str,

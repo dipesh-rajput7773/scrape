@@ -119,6 +119,27 @@ Email (Subject + 5 lines, under 90 words):
 Professional, peer-to-peer tone.
 Output: subject first, blank line, body.""",
 
+    "it_outsource": """\
+Cold email from a software outsourcing / staff augmentation partner reaching out to an IT company.
+We offer: dedicated offshore dev teams (full-stack, mobile, AI/ML, DevOps) at 40-60% lower cost
+than local hiring, with zero recruitment overhead and instant scale-up.
+
+Lead:
+- IT Company: {name}
+- Location: {location}
+- Has website: {has_website}
+
+Write a SHORT, direct cold email (Subject + 5 lines, under 90 words):
+1. Opener specific to the IT company — acknowledge they build software or manage tech projects
+2. Pain: scaling dev capacity fast is expensive and slow with local hiring
+3. Our offer: dedicated offshore dev team (same timezone overlap, English-fluent, vetted engineers) —
+   ready to start in 1 week, 40-60% cost saving vs US/UK rates
+4. Proof: "Companies like yours cut time-to-hire from 8 weeks to 5 days with our model"
+5. CTA: "Can I send over a 2-min overview and a sample team profile?"
+
+Tone: peer-to-peer, confident, no fluff, no "Hope this finds you well".
+Output format — first line is subject (no "Subject:" prefix), blank line, then body.""",
+
     "ecom": """\
 Cold email for Qorvai — AI automation agency.
 Our service: WhatsApp AI that recovers abandoned carts, sends order updates,

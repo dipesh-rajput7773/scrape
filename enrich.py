@@ -10,10 +10,16 @@ import csv
 import re
 import sys
 from playwright.async_api import async_playwright
+from stealth import (
+    create_stealth_context, patch_page, random_delay, get_proxy,
+    random_ua, random_viewport,
+)
 
 EMAIL_RE = re.compile(r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}")
 PHONE_RE = re.compile(r"(\+?\d[\d\s\-().]{7,}\d)")
 IG_RE    = re.compile(r"instagram\.com/([A-Za-z0-9_.]{2,30})(?:/|\"|\s)")
+LI_RE    = re.compile(r"linkedin\.com/(?:in|company)/([A-Za-z0-9_\-%.]+)")
+FB_RE    = re.compile(r"facebook\.com/([A-Za-z0-9_\-%.]+)")
 
 JUNK_EMAILS = (".png", ".jpg", ".svg", ".gif", ".webp", "sentry", "wix.com",
                "example.com", "domain.com", "email.com", "yourcompany")
@@ -83,15 +89,10 @@ async def enrich(rows):
         print(f"[enrich] email_finder batch failed, falling back: {e}")
 
     async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
-        ctx = await browser.new_context(
-            user_agent=(
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                "AppleWebKit/537.36 (KHTML, like Gecko) "
-                "Chrome/126.0.0.0 Safari/537.36"
-            )
-        )
+        browser = await p.chromium.launch(headless=True, proxy=get_proxy())
+        ctx = await create_stealth_context(browser, viewport=random_viewport(), ua=random_ua())
         page = await ctx.new_page()
+        await patch_page(page)
 
         for i, row in enumerate(rows, 1):
             url = row.get("cta_url", "").strip() or row.get("website", "").strip()
@@ -103,6 +104,8 @@ async def enrich(rows):
             row.setdefault("email", "")
             row.setdefault("phone", "")
             row.setdefault("instagram", "")
+            row.setdefault("linkedin", "")
+            row.setdefault("facebook", "")
 
             if not url or not url.startswith("http"):
                 print(f"[{i}/{len(rows)}] SKIP (no URL) — {row.get('business_name','')[:40]}")
@@ -111,19 +114,24 @@ async def enrich(rows):
             try:
                 print(f"[{i}/{len(rows)}] {url[:70]}")
                 await page.goto(url, wait_until="domcontentloaded", timeout=20000)
-                await page.wait_for_timeout(1200)
+                await random_delay(1.2, 2.5)
                 html = await page.content()
 
                 emails = clean_emails(EMAIL_RE.findall(html))
                 phones = clean_phones(PHONE_RE.findall(html))
                 igs    = list(dict.fromkeys(IG_RE.findall(html)))
+                lis    = list(dict.fromkeys(LI_RE.findall(html)))
+                fbs    = list(dict.fromkeys(FB_RE.findall(html)))
 
-                # If no email on main page, try /contact
-                if not emails:
+                # If no email/socials on main page, try /contact
+                if not emails or not (igs or lis or fbs):
                     html2 = await try_contact_page(page, url)
                     if html2:
-                        emails = clean_emails(EMAIL_RE.findall(html2))
+                        emails = list(dict.fromkeys(emails + clean_emails(EMAIL_RE.findall(html2))))
                         phones = phones or clean_phones(PHONE_RE.findall(html2))
+                        igs    = list(dict.fromkeys(igs + IG_RE.findall(html2)))
+                        lis    = list(dict.fromkeys(lis + LI_RE.findall(html2)))
+                        fbs    = list(dict.fromkeys(fbs + FB_RE.findall(html2)))
 
                 # Merge with existing data — don't overwrite if already have value
                 if emails:
@@ -142,6 +150,14 @@ async def enrich(rows):
                     ig_clean = [h for h in igs if h not in ("p", "explore", "reel", "stories")]
                     row["instagram"] = "; ".join(ig_clean[:2])
 
+                if lis:
+                    li_clean = [h for h in lis if h not in ("company", "in", "pub", "feed", "share")]
+                    row["linkedin"] = "; ".join(li_clean[:2])
+
+                if fbs:
+                    fb_clean = [h for h in fbs if h not in ("pages", "group", "people", "sharer", "profile.php")]
+                    row["facebook"] = "; ".join(fb_clean[:2])
+
                 # Hyper-personalization: Scrape About text
                 row["about_text"] = await scrape_about_text(page, url)
 
@@ -149,6 +165,8 @@ async def enrich(rows):
                 if row["email"]:   status.append(f"email=[OK]")
                 if row["phone"]:   status.append(f"phone=[OK]")
                 if row["instagram"]: status.append(f"ig=[OK]")
+                if row["linkedin"]:  status.append(f"li=[OK]")
+                if row["facebook"]:  status.append(f"fb=[OK]")
                 if row["about_text"]: status.append(f"about=[OK]")
                 print(f"  -> {' '.join(status) or 'no contact found'}")
 
@@ -161,6 +179,7 @@ async def enrich(rows):
 
         await browser.close()
     return rows
+
 
 
 def main():

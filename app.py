@@ -102,294 +102,136 @@ st.markdown(
         --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
         --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
         --shadow-md: 0 4px 6px rgba(0,0,0,0.05), 0 2px 4px rgba(0,0,0,0.04);
-        --shadow-lg: 0 10px 25px rgba(0,0,0,0.06), 0 4px 10px rgba(0,0,0,0.04);
-    }
-
-    body.dark-mode {
-        --bg: #0a0a10;
-        --bg-card: rgba(255,255,255,0.04);
-        --bg-sidebar: #0c0c14;
-        --text: #f1f5f9;
-        --text-secondary: #94a3b8;
-        --text-tertiary: #64748b;
-        --border: rgba(255,255,255,0.08);
-        --border-light: rgba(255,255,255,0.04);
-        --shadow-sm: 0 1px 2px rgba(0,0,0,0.2);
-        --shadow: 0 1px 3px rgba(0,0,0,0.3);
-        --shadow-md: 0 4px 6px rgba(0,0,0,0.3);
-        --shadow-lg: 0 10px 25px rgba(0,0,0,0.4);
-        --accent: #818cf8;
-        --accent-glow: rgba(129,140,248,0.15);
+        --shadow: 0 4px 24px rgba(0,0,0,0.4);
+        --shadow-glow: 0 0 40px rgba(139,92,246,0.15);
     }
 
     html, body, [data-testid="stAppViewContainer"] {
         font-family: var(--font-sans);
-        background: var(--bg);
+        background: var(--bg) !important;
         color: var(--text);
-        transition: background 0.3s ease, color 0.3s ease;
     }
-    [data-testid="stHeader"] { background: transparent !important; display: none !important; }
+    [data-testid="stHeader"] { display: none !important; }
+    [data-testid="stMain"] { background: var(--bg) !important; }
 
     [data-testid="stSidebar"] {
         background: var(--bg-sidebar) !important;
-        border-right: 1px solid rgba(255,255,255,0.06) !important;
+        border-right: 1px solid var(--border) !important;
     }
-    [data-testid="stSidebar"] * { color: #e2e8f0 !important; }
+    [data-testid="stSidebar"] * { color: var(--text-secondary) !important; }
     [data-testid="stSidebar"] .stButton>button {
-        background: rgba(255,255,255,0.06) !important;
-        color: #e2e8f0 !important;
-        border: 1px solid rgba(255,255,255,0.08) !important;
+        background: rgba(139,92,246,0.12) !important;
+        color: #c4b5fd !important;
+        border: 1px solid rgba(139,92,246,0.25) !important;
+        border-radius: 8px !important;
     }
     [data-testid="stSidebar"] .stButton>button:hover {
-        background: rgba(255,255,255,0.1) !important;
+        background: rgba(139,92,246,0.22) !important;
+        border-color: rgba(139,92,246,0.5) !important;
+        color: #fff !important;
     }
 
     .sidebar-brand {
         font-family: var(--font-display);
-        font-size: 1.6rem;
-        font-weight: 800;
-        letter-spacing: -0.5px;
-        background: linear-gradient(135deg, var(--gradient-1), var(--gradient-2), var(--gradient-3));
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
+        font-size: 1.7rem; font-weight: 800; letter-spacing: -0.5px;
+        background: linear-gradient(135deg, #8b5cf6, #6366f1, #06b6d4);
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
     }
     .sidebar-tagline {
-        color: #94a3b8 !important;
-        font-size: 0.8rem;
-        font-weight: 500;
-        letter-spacing: 0.3px;
-        text-transform: uppercase;
-    }
-
-    .nav-item {
-        padding: 0.65rem 1rem;
-        border-radius: 8px;
-        font-size: 0.9rem;
-        font-weight: 500;
-        color: #94a3b8 !important;
-        transition: all 0.15s ease;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        gap: 0.6rem;
-    }
-    .nav-item:hover, .nav-item.active {
-        background: rgba(255,255,255,0.06);
-        color: #f1f5f9 !important;
+        color: var(--text-tertiary) !important;
+        font-size: 0.7rem; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
     }
 
     .main-header {
         font-family: var(--font-display);
-        font-size: 2.5rem;
-        font-weight: 800;
-        letter-spacing: -1px;
-        color: var(--text);
-        margin-bottom: 0.15rem;
-        animation: slideUp 0.5s ease-out;
+        font-size: 2.3rem; font-weight: 800; letter-spacing: -1px; color: var(--text);
+        margin-bottom: 0.1rem; animation: slideUp 0.4s ease-out both;
     }
     .sub-header {
-        font-size: 1rem;
-        color: var(--text-secondary);
-        font-weight: 400;
-        margin-bottom: 2rem;
-        animation: slideUp 0.5s ease-out 0.1s both;
+        font-size: 0.92rem; color: var(--text-secondary); font-weight: 400;
+        margin-bottom: 1.8rem; animation: slideUp 0.4s ease-out 0.08s both;
     }
 
     .stat-card {
-        background: var(--bg-card);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
-        border-radius: var(--radius-lg);
-        padding: 1.5rem;
-        border: 1px solid var(--border);
-        box-shadow: var(--shadow);
-        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-        position: relative;
-        overflow: hidden;
+        background: var(--bg-card); border-radius: var(--radius-lg);
+        padding: 1.4rem 1.5rem; border: 1px solid var(--border);
+        box-shadow: var(--shadow); transition: all 0.2s cubic-bezier(0.4,0,0.2,1);
+        position: relative; overflow: hidden; backdrop-filter: blur(12px);
+    }
+    .stat-card::before {
+        content: ''; position: absolute; inset: 0;
+        background: linear-gradient(135deg, rgba(139,92,246,0.06), transparent 60%);
+        pointer-events: none;
     }
     .stat-card::after {
-        content: "";
-        position: absolute;
-        top: 0; left: 0; right: 0;
-        height: 3px;
-        background: linear-gradient(90deg, var(--gradient-1), var(--gradient-2), var(--gradient-3));
-        opacity: 0;
-        transition: opacity 0.25s ease;
+        content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+        background: linear-gradient(90deg, #8b5cf6, #6366f1, #06b6d4);
+        opacity: 0; transition: opacity 0.2s ease;
     }
-    .stat-card:hover {
-        transform: translateY(-4px);
-        box-shadow: var(--shadow-lg);
-        border-color: var(--accent);
-    }
+    .stat-card:hover { transform: translateY(-3px); border-color: var(--border-accent); box-shadow: var(--shadow), var(--shadow-glow); }
     .stat-card:hover::after { opacity: 1; }
-
-    .stat-number {
-        font-family: var(--font-display);
-        font-size: 2.2rem;
-        font-weight: 800;
-        color: var(--text);
-        line-height: 1.1;
-    }
-    .stat-label {
-        font-size: 0.78rem;
-        color: var(--text-secondary);
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.8px;
-        margin-top: 0.35rem;
-    }
+    .stat-number { font-family: var(--font-display); font-size: 2rem; font-weight: 800; color: var(--text); line-height: 1.1; }
+    .stat-label { font-size: 0.7rem; color: var(--text-tertiary); font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-top: 0.3rem; }
+    .stat-trend-up { font-size: 0.78rem; color: var(--green); font-weight: 600; }
 
     .news-card {
-        background: var(--bg-card);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        border: 1px solid var(--border);
-        border-radius: var(--radius);
-        padding: 1.25rem;
-        margin-bottom: 1rem;
-        box-shadow: var(--shadow-sm);
-        transition: all 0.2s ease;
+        background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+        padding: 1rem 1.2rem; margin-bottom: 0.6rem; transition: all 0.18s ease; backdrop-filter: blur(8px);
     }
-    .news-card:hover {
-        border-color: var(--accent);
-        box-shadow: var(--shadow-md);
-        transform: translateY(-2px);
-    }
-    .news-title { font-size: 1.05rem; font-weight: 600; color: var(--text); }
+    .news-card:hover { border-color: var(--border-accent); background: var(--bg-card-hover); transform: translateX(4px); }
+    .news-title { font-size: 0.93rem; font-weight: 600; color: var(--text); line-height: 1.4; }
+    .news-meta { font-size: 0.73rem; color: var(--text-tertiary); margin-top: 0.25rem; }
 
     .badge {
         display: inline-flex; align-items: center; gap: 4px;
-        background: rgba(99,102,241,0.1); color: var(--accent);
-        padding: 0.2rem 0.7rem; border-radius: 6px; font-size: 0.72rem;
-        font-weight: 600; letter-spacing: 0.3px;
+        background: rgba(139,92,246,0.15); color: #c4b5fd;
+        padding: 0.18rem 0.7rem; border-radius: 20px; font-size: 0.68rem;
+        font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase;
+        border: 1px solid rgba(139,92,246,0.3);
     }
-    .badge-pro {
-        background: linear-gradient(135deg, var(--gradient-1), var(--gradient-3));
-        color: #fff;
-        box-shadow: 0 4px 12px var(--accent-glow);
-    }
-    .badge-free {
-        background: rgba(148,163,184,0.15);
-        color: #94a3b8;
-    }
+    .badge-pro { background: linear-gradient(135deg, #8b5cf6, #06b6d4); color: #fff; border: none; box-shadow: 0 2px 12px rgba(139,92,246,0.4); }
+    .badge-free { background: rgba(71,85,105,0.3); color: #64748b; border-color: rgba(71,85,105,0.3); }
 
     .stButton>button {
-        border-radius: 8px !important;
-        font-weight: 600 !important;
-        font-size: 0.9rem !important;
-        background: var(--text) !important;
-        color: var(--bg) !important;
-        border: none !important;
-        padding: 0.55rem 1.2rem !important;
-        transition: all 0.2s ease !important;
-        box-shadow: var(--shadow-sm) !important;
+        border-radius: 8px !important; font-weight: 600 !important; font-size: 0.87rem !important;
+        background: linear-gradient(135deg, #8b5cf6, #6366f1) !important;
+        color: #fff !important; border: none !important; padding: 0.58rem 1.3rem !important;
+        transition: all 0.2s ease !important; box-shadow: 0 2px 12px rgba(139,92,246,0.3) !important;
     }
-    .stButton>button:hover {
-        opacity: 0.85 !important;
-        transform: translateY(-1px) !important;
-        box-shadow: var(--shadow-md) !important;
-    }
+    .stButton>button:hover { transform: translateY(-2px) !important; box-shadow: 0 6px 20px rgba(139,92,246,0.5) !important; filter: brightness(1.1) !important; }
+    .stButton>button:active { transform: translateY(0) !important; }
 
-    body.dark-mode .stButton>button {
-        background: linear-gradient(135deg, var(--gradient-1), var(--gradient-2)) !important;
-        color: #fff !important;
+    [data-testid="stTextInput"] input, [data-testid="stTextArea"] textarea {
+        background: rgba(255,255,255,0.05) !important; border: 1px solid var(--border) !important;
+        border-radius: 8px !important; color: var(--text) !important;
     }
-
-    button[data-baseweb="tab"] {
-        font-size: 0.9rem !important;
-        font-weight: 500 !important;
+    [data-testid="stTextInput"] input:focus, [data-testid="stTextArea"] textarea:focus {
+        border-color: var(--accent) !important; box-shadow: 0 0 0 3px var(--accent-glow) !important;
     }
 
     [data-testid="stExpander"] {
-        background: var(--bg-card) !important;
-        backdrop-filter: blur(12px) !important;
-        -webkit-backdrop-filter: blur(12px) !important;
-        border-radius: var(--radius-lg) !important;
-        border: 1px solid var(--border) !important;
-        box-shadow: var(--shadow) !important;
+        background: var(--bg-card) !important; border-radius: var(--radius-lg) !important;
+        border: 1px solid var(--border) !important; backdrop-filter: blur(8px) !important;
     }
-    [data-testid="stExpander"] summary {
-        font-weight: 600 !important;
-    }
+    [data-testid="stExpander"] summary { font-weight: 600 !important; color: var(--text) !important; }
 
-    [data-testid="stMetricValue"] {
-        color: var(--accent) !important;
-        font-weight: 700 !important;
-    }
+    [data-testid="stMetricValue"] { color: var(--accent) !important; font-weight: 800 !important; }
+    [data-testid="stMetricLabel"] { color: var(--text-secondary) !important; }
 
-    .divider {
-        height: 1px;
-        background: var(--border);
-        margin: 2rem 0;
-    }
+    button[data-baseweb="tab"] { font-size: 0.87rem !important; font-weight: 600 !important; color: var(--text-secondary) !important; }
+    button[data-baseweb="tab"][aria-selected="true"] { color: var(--accent) !important; }
 
     .pricing-card {
-        background: var(--bg-card);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
-        border: 1px solid var(--border);
-        border-radius: var(--radius-lg);
-        padding: 2.5rem 2rem;
-        text-align: center;
-        box-shadow: var(--shadow);
-        transition: all 0.3s ease;
-        position: relative;
+        background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg);
+        padding: 2.2rem 1.8rem; text-align: center; transition: all 0.25s ease;
+        position: relative; backdrop-filter: blur(12px);
     }
-    .pricing-card:hover {
-        transform: translateY(-6px);
-        box-shadow: var(--shadow-lg);
-        border-color: var(--accent);
-    }
-    .pricing-card.featured {
-        border-color: var(--accent);
-        box-shadow: 0 0 0 1px var(--accent), var(--shadow-lg);
-        transform: scale(1.03);
-    }
-    .pricing-card.featured:hover { transform: scale(1.03) translateY(-6px); }
+    .pricing-card:hover { transform: translateY(-6px); border-color: var(--border-accent); box-shadow: var(--shadow-glow); }
+    .pricing-card.featured { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), var(--shadow-glow); background: rgba(139,92,246,0.08); }
+    .pricing-price { font-family: var(--font-display); font-size: 2.8rem; font-weight: 800; color: var(--text); }
+    .pricing-price span { font-size: 1rem; font-weight: 400; color: var(--text-secondary); }
+    .pricing-name { font-family: var(--font-display); font-size: 1.2rem; font-weight: 700; color: var(--text); margin-bottom: 0.4rem; }
     .pricing-card .popular-badge {
-        position: absolute;
-        top: -12px; left: 50%;
-        transform: translateX(-50%);
-        background: linear-gradient(135deg, var(--gradient-1), var(--gradient-2));
-        color: #fff;
-        font-size: 0.72rem;
-        font-weight: 700;
-        padding: 0.3rem 1rem;
-        border-radius: 20px;
-        letter-spacing: 0.5px;
-        text-transform: uppercase;
-    }
-
-    .pricing-price {
-        font-family: var(--font-display);
-        font-size: 3rem;
-        font-weight: 800;
-        color: var(--text);
-    }
-    .pricing-price span {
-        font-size: 1rem;
-        font-weight: 500;
-        color: var(--text-secondary);
-    }
-    .pricing-name {
-        font-family: var(--font-display);
-        font-size: 1.3rem;
-        font-weight: 700;
-        color: var(--text);
-        margin-bottom: 0.5rem;
-    }
-
-    @keyframes slideUp {
-        from { opacity: 0; transform: translateY(16px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-    @keyframes fadeIn {
-        from { opacity: 0; }
-        to { opacity: 1; }
-    }
-    @keyframes pulse {
-        0%, 100% { opacity: 1; }
         50% { opacity: 0.6; }
     }
 
@@ -425,8 +267,27 @@ DB     = st.session_state.db
 MDB    = st.session_state.master_db   # Master businesses flywheel
 
 # ── Constants ────────────────────────────────────────────────────────────
-NICHES = ["realestate", "dental", "gym", "salon", "it", "ecom"]
+NICHES = ["realestate", "dental", "gym", "salon", "it", "it_company", "ecom"]
+NICHE_LABELS = {
+    "realestate": "Real Estate",
+    "dental":     "Dental",
+    "gym":        "Gym / Fitness",
+    "salon":      "Salon / Spa",
+    "it":         "IT Services (General)",
+    "it_company": "💼 IT Company (Outsource Outreach)",
+    "ecom":       "E-Commerce",
+}
 SOURCES = ["maps", "meta", "reddit", "linkedin", "instagram"]
+
+# ── US Cities quick-select ──────────────────────────────────────────────────
+US_CITIES = {
+    "🗽 New York, NY":     "New York, NY",
+    "🌊 Los Angeles, CA": "Los Angeles, CA",
+    "⛰️ Denver, CO":      "Denver, CO",
+    "🤠 Dallas, TX":      "Dallas, TX",
+    "🌬️ Chicago, IL":     "Chicago, IL",
+}
+
 COUNTRIES = {
     "UAE (Dubai)": "AE",
     "United Kingdom": "GB",
@@ -731,8 +592,13 @@ def show_lead_finder():
                 value=min(10, fetch_max), step=5 if is_pro() else 1,
                 disabled=not is_pro()
             )
-            extract_pain = st.checkbox("🧠 Extract Pain Points (uses GPT)", value=True)
-            show_browser = st.checkbox("👁️ Show Browser", value=False)
+            col_a, col_b, col_c = st.columns(3)
+            with col_a:
+                extract_pain = st.checkbox("🧠 Extract Pain Points (uses GPT)", value=True)
+            with col_b:
+                show_browser = st.checkbox("👁️ Show Browser", value=False)
+            with col_c:
+                auto_email = st.checkbox("✉️ Auto-Email Hot/Warm Leads", value=False, help="Automatically email hot/warm leads after enrichment")
             
         else:
             col1, col2, col3, col4 = st.columns(4)
@@ -742,7 +608,17 @@ def show_lead_finder():
                 )
                 country_code = COUNTRIES[country_label]
             with col2:
-                niche = st.selectbox("🏢 Niche", NICHES, index=0)
+                niche_label = st.selectbox(
+                    "🏢 Niche",
+                    list(NICHE_LABELS.values()),
+                    index=0,
+                    help="Select 'IT Company (Outsource Outreach)' to auto-email IT companies about outsourcing",
+                )
+                # Reverse-map label → internal key
+                niche = next(
+                    (k for k, v in NICHE_LABELS.items() if v == niche_label),
+                    "realestate"
+                )
             with col3:
                 source = st.selectbox(
                     "📡 Source",
@@ -763,7 +639,27 @@ def show_lead_finder():
                     help="Free: 10 leads. Pro: 300. Agency: unlimited."
                 )
 
-            col1, col2 = st.columns(2)
+            # ── US City quick-select (shown when United States is picked) ──
+            if country_code == "US":
+                city_label = st.selectbox(
+                    "🏙️ US City",
+                    list(US_CITIES.keys()),
+                    index=0,
+                    help="Choose one of the 5 pre-loaded US cities for faster scraping",
+                )
+                us_city_override = US_CITIES[city_label]   # e.g. "Denver, CO"
+            else:
+                us_city_override = None
+
+            # ── IT Company outsource banner ────────────────────────────────
+            if niche == "it_company":
+                st.info(
+                    "💼 **IT Company Outsource Mode** — We'll scrape IT companies in your chosen "
+                    "city and automatically send them a cold email offering software outsourcing "
+                    "/ staff augmentation services. Make sure EMAIL_FROM & EMAIL_PASS are set in Settings."
+                )
+
+            col1, col2, col3 = st.columns(3)
             with col1:
                 extract_pain = st.checkbox(
                     "🧠 Extract Pain Points (uses GPT)",
@@ -773,6 +669,14 @@ def show_lead_finder():
             with col2:
                 show_browser = st.checkbox(
                     "👁️ Show Browser", value=False, help="Debug: watch the scraper live"
+                )
+            with col3:
+                _it_auto = niche == "it_company"   # force auto-email ON for IT Company mode
+                auto_email = st.checkbox(
+                    "✉️ Auto-Email Hot/Warm Leads",
+                    value=_it_auto,
+                    help="IT Company mode: auto-email all scraped companies about outsourcing" if _it_auto
+                         else "Automatically write and email hot/warm leads immediately",
                 )
 
     if st.button("🚀 Start Scraping", type="primary", use_container_width=True):
@@ -784,6 +688,7 @@ def show_lead_finder():
 
         # Resolve parameters
         ai_keywords = []
+        us_city_override = None   # may be set in Manual Filters mode below
         if search_mode == "✨ AI Magic Search (Zero-Prompt)":
             progress_bar.progress(5, text="🤖 AI analyzing your request and generating search queries...")
             try:
@@ -797,7 +702,13 @@ def show_lead_finder():
                 st.error(f"AI Generation Failed: {e}. Please check your OpenAI API Key.")
                 return
         else:
-            location = LOCATION_MAP.get(country_code, country_label)
+            if us_city_override:
+                location = us_city_override
+            else:
+                location = LOCATION_MAP.get(country_code, country_label)
+
+        # Map it_company → it for scraper (same keyword set)
+        scraper_niche = "it" if niche == "it_company" else niche
 
         tag = f"{niche}_{location.lower().replace(' ','_').replace(',', '')}"
         output_csv = f"leads_{tag}.csv"
@@ -839,14 +750,15 @@ def show_lead_finder():
                     return
             # ── End cache check — proceed with live scrape ───────────────
 
-            progress_bar.progress(10, text=f"Running {source} scraper for {niche} in {location}...")
+            progress_bar.progress(10, text=f"Running {source} scraper for {scraper_niche} in {location}...")
 
             if source == "maps":
                 if search_mode == "✨ AI Magic Search (Zero-Prompt)" and ai_keywords:
                     keywords = ai_keywords
                 else:
                     from run_pipeline import NICHE_KEYWORDS
-                    keywords = NICHE_KEYWORDS.get(niche, [niche])
+                    # IT Company uses the same 'it' keyword bank
+                    keywords = NICHE_KEYWORDS.get(scraper_niche, [scraper_niche])
                 
                 all_files = []
                 for kw in keywords:
@@ -1084,6 +996,67 @@ def show_lead_finder():
                     total_new = added
                     status_box.success(f"✅ {added} NEW leads added ({skipped} duplicates skipped)")
 
+                    # ── Auto-Email hot/warm leads immediately ────────────
+                    if auto_email:
+                        _is_it_outsource = (niche == "it_company")
+                        _label = "all IT companies" if _is_it_outsource else "hot/warm leads"
+                        st.info(f"✉️ Auto-emailing {_label}...")
+                        try:
+                            # Fetch newly imported leads matching niche+location
+                            with DB._conn() as conn:
+                                conn.row_factory = __import__("sqlite3").Row
+                                if _is_it_outsource:
+                                    # IT Company mode: email ALL leads (not just hot/warm)
+                                    new_leads = conn.execute(
+                                        "SELECT * FROM leads WHERE outreach_sent=0 "
+                                        "AND email != '' AND email IS NOT NULL "
+                                        "ORDER BY id DESC LIMIT ?", (added,)
+                                    ).fetchall()
+                                else:
+                                    # Normal mode: only hot/warm leads
+                                    new_leads = conn.execute(
+                                        "SELECT * FROM leads WHERE outreach_sent=0 "
+                                        "AND (temperature='hot' OR temperature='warm') "
+                                        "AND email != '' AND email IS NOT NULL "
+                                        "ORDER BY id DESC LIMIT ?", (added,)
+                                    ).fetchall()
+
+                            sent_count = 0
+                            for lead in new_leads:
+                                lead_dict = dict(lead)
+                                email_addr = lead_dict.get("email", "").strip()
+                                if not email_addr:
+                                    continue
+
+                                # Generate AI Email
+                                from cold_email_gen import generate_email
+                                if _is_it_outsource:
+                                    # Force outsourcing-specific template
+                                    g_subj, g_body, g_niche = generate_email(
+                                        lead_dict, force_niche="it_outsource"
+                                    )
+                                else:
+                                    g_subj, g_body, g_niche = generate_email(lead_dict)
+
+                                # Send Email
+                                from email_sender import send_email
+                                if send_email(email_addr, g_subj, g_body):
+                                    with DB._conn() as conn:
+                                        conn.execute(
+                                            "UPDATE leads SET email_subject=?, email_body=?, outreach_sent=1 WHERE id=?",
+                                            (g_subj, g_body, lead_dict["id"]),
+                                        )
+                                        conn.commit()
+                                    sent_count += 1
+
+                            if sent_count > 0:
+                                st.success(f"🚀 Auto-sent cold emails to {sent_count} {'IT companies' if _is_it_outsource else 'qualified leads'} successfully!")
+                            else:
+                                st.info("ℹ️ No leads had verified emails for auto-outreach.")
+                        except Exception as auto_err:
+                            st.warning(f"⚠️ Auto-emailing failed: {auto_err}. Make sure EMAIL_FROM and EMAIL_PASS are set in Settings.")
+                    # ── End auto-email ───────────────────────────────────
+
                     # ── Store into master businesses flywheel ────────────
                     try:
                         import csv as _csv
@@ -1107,7 +1080,7 @@ def show_lead_finder():
                     with DB._conn() as conn:
                         conn.row_factory = __import__("sqlite3").Row
                         rows = conn.execute(
-                            "SELECT business_name, phone, email, website, "
+                            "SELECT business_name, phone, email, website, instagram, linkedin, facebook, "
                             "pain_point, score, temperature, source "
                             "FROM leads ORDER BY created_at DESC LIMIT 20"
                         ).fetchall()
@@ -1171,7 +1144,7 @@ def show_lead_finder():
         with DB._conn() as conn:
             conn.row_factory = __import__("sqlite3").Row
             rows = conn.execute(
-                "SELECT business_name, phone, email, niche, location, "
+                "SELECT business_name, phone, email, instagram, linkedin, facebook, niche, location, "
                 "source, pain_point, score, temperature, created_at "
                 "FROM leads ORDER BY created_at DESC LIMIT 20"
             ).fetchall()
@@ -1480,6 +1453,20 @@ def show_outreach():
                     st.code(email_addr, language=None)
                 if phone:
                     st.caption(f"📞 {phone}")
+                
+                # Render socials if present
+                instagram = lead.get("instagram", "")
+                linkedin  = lead.get("linkedin", "")
+                facebook  = lead.get("facebook", "")
+                if instagram or linkedin or facebook:
+                    socials = []
+                    if instagram:
+                        socials.append(f"📸 **IG**: {instagram}")
+                    if linkedin:
+                        socials.append(f"💼 **LI**: {linkedin}")
+                    if facebook:
+                        socials.append(f"👤 **FB**: {facebook}")
+                    st.markdown(" | ".join(socials))
                 st.markdown("**🧠 Pain Point**")
                 st.info(pain[:200] if pain else "Run AI scoring to extract pain point")
                 if about:

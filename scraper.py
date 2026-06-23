@@ -1,5 +1,5 @@
 from __future__ import annotations
-﻿"""
+"""
 Meta Ads Library Scraper
 Usage: python scraper.py "ai automation" --country IN --max 100
 Output: leads.csv
@@ -10,8 +10,14 @@ import argparse
 import csv
 import re
 import sys
+import random
 from urllib.parse import quote
 from playwright.async_api import async_playwright
+
+from stealth import (
+    create_stealth_context, patch_page, random_delay, get_proxy,
+    random_ua, random_viewport,
+)
 
 
 BASE_URL = (
@@ -27,16 +33,10 @@ async def scrape_ads(query: str, country: str, max_ads: int, headless: bool):
     seen_pages = set()
 
     async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=headless)
-        ctx = await browser.new_context(
-            user_agent=(
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                "AppleWebKit/537.36 (KHTML, like Gecko) "
-                "Chrome/126.0.0.0 Safari/537.36"
-            ),
-            viewport={"width": 1366, "height": 900},
-        )
+        browser = await p.chromium.launch(headless=headless, proxy=get_proxy())
+        ctx = await create_stealth_context(browser, viewport=random_viewport(), ua=random_ua())
         page = await ctx.new_page()
+        await patch_page(page)
 
         print(f"[*] Opening: {url}")
         await page.goto(url, wait_until="domcontentloaded", timeout=60000)
@@ -51,14 +51,14 @@ async def scrape_ads(query: str, country: str, max_ads: int, headless: bool):
         except Exception:
             pass
 
-        await page.wait_for_timeout(4000)
+        await random_delay(3.0, 5.0)
 
         # Scroll until enough ads or no growth
         last_count = 0
         stagnant = 0
         while len(results) < max_ads and stagnant < 4:
-            await page.mouse.wheel(0, 4000)
-            await page.wait_for_timeout(2500)
+            await page.mouse.wheel(0, random.randint(3500, 4500))
+            await random_delay(2.0, 3.5)
 
             cards = await page.locator("div[role='main'] > div > div > div > div").all()
             if not cards:

@@ -57,6 +57,8 @@ class LeadsDB:
                     website       TEXT,
                     address       TEXT,
                     instagram     TEXT,
+                    linkedin      TEXT,
+                    facebook      TEXT,
                     source        TEXT,
                     niche         TEXT,
                     location      TEXT,
@@ -73,6 +75,17 @@ class LeadsDB:
                     name_norm     TEXT
                 )
             """)
+            
+            # Migration for existing databases
+            try:
+                conn.execute("ALTER TABLE leads ADD COLUMN linkedin TEXT")
+            except sqlite3.OperationalError:
+                pass
+            try:
+                conn.execute("ALTER TABLE leads ADD COLUMN facebook TEXT")
+            except sqlite3.OperationalError:
+                pass
+            
             conn.execute("CREATE INDEX IF NOT EXISTS idx_phone ON leads(phone_norm)")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_email ON leads(email_norm)")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_name  ON leads(name_norm)")
@@ -120,11 +133,12 @@ class LeadsDB:
             cur = conn.execute("""
                 INSERT OR IGNORE INTO leads
                     (business_name, phone, email, website, address, instagram,
+                     linkedin, facebook,
                      source, niche, location,
                      pain_point, score, temperature,
                      email_subject, email_body,
                      phone_norm, email_norm, name_norm)
-                VALUES (?,?,?,?,?,?, ?,?,?, ?,?,?, ?,?, ?,?,?)
+                VALUES (?,?,?,?,?,?, ?,?, ?,?,?, ?,?,?, ?,?, ?,?,?)
             """, (
                 name,
                 phone,
@@ -132,6 +146,8 @@ class LeadsDB:
                 row.get("website") or row.get("cta_url") or "",
                 row.get("address") or "",
                 row.get("instagram") or "",
+                row.get("linkedin") or "",
+                row.get("facebook") or "",
                 source or row.get("source", ""),
                 niche  or row.get("niche", ""),
                 location or row.get("location") or row.get("address", "")[:60],
